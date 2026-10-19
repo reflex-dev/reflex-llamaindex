@@ -1,0 +1,378 @@
+# Form
+
+Forms are used to collect user input. The `rx.form` component is used to group inputs and submit them together.
+
+The form component's children can be form controls such as `rx.input`, `rx.checkbox`, `rx.slider`, `rx.text_area`, `rx.radio_group`, `rx.select` or `rx.switch`. The controls should have a `name` attribute that is used to identify the control in the form data. The `on_submit` event trigger submits the form data as a dictionary to the `handle_submit` event handler.
+
+The form is submitted when the user clicks the submit button or presses enter on the form controls.
+
+```python demo exec
+class FormState(rx.State):
+    form_data: dict = {}
+
+    @rx.event
+    def handle_submit(self, form_data: dict):
+        """Handle the form submit."""
+        self.form_data = form_data
+
+
+def form_example():
+    return rx.vstack(
+        rx.form(
+            rx.vstack(
+                rx.input(placeholder="First Name", name="first_name"),
+                rx.input(placeholder="Last Name", name="last_name"),
+                rx.hstack(
+                    rx.checkbox("Checked", name="check"),
+                    rx.switch("Switched", name="switch"),
+                ),
+                rx.button("Submit", type="submit"),
+            ),
+            on_submit=FormState.handle_submit,
+            reset_on_submit=True,
+        ),
+        rx.divider(),
+        rx.heading("Results", as_="h2"),
+        rx.text(FormState.form_data.to_string()),
+    )
+```
+
+```md alert warning
+# When using the form you must include a button or input with `type='submit'`.
+```
+
+```md alert info
+# Using `name` vs `id`.
+
+When using the `name` attribute in form controls like `rx.switch`, `rx.radio_group`, and `rx.checkbox`, these controls will only be included in the form data if their values are set (e.g., if the checkbox is checked, the switch is toggled, or a radio option is selected). Read them with `form_data.get(...)`, or declare them as `bool` fields of a [TypedDict](#validating-form-data-with-a-typeddict).
+
+A control with an `id` is also included in the form data under its `id`, even when its value is not set, and that value replaces the value submitted under the same `name`, unless the form submits that `name` more than once. Custom native `input`, `select`, and `textarea` components with an `id` are included automatically. For other custom form controls, set `_is_form_control = True` on the component class to include its ID-based value in submissions.
+
+Including controls by `id` is deprecated and will be removed in Reflex 0.11. From then on, form data holds only what each control submits under its `name`:
+
+- A control with an `id` but no `name` is no longer submitted, so give it a `name`. Compiling the form warns about these.
+- A control whose `id` differs from its `name` no longer adds a second field keyed by its `id`.
+- A control whose `id` equals its `name` submits its own value instead of the one read through its `id`. A checkbox or switch then submits `"on"` or nothing rather than `True` or `False`; declare it as a `bool` field of a [TypedDict](#validating-form-data-with-a-typeddict) to keep reading a bool.
+```
+
+```md video https://youtube.com/embed/ITOZkzjtjUA?start=5287&end=6040
+# Video: Forms
+```
+
+## Fields with the Same Name
+
+Several controls can share a `name`, such as a group of checkboxes. A `dict`
+annotation keeps only the last value submitted for each name. To receive every
+value in the order the form submitted them, annotate the handler's parameter
+with `rx.form.FormData` and read them with `getlist` (or its alias `getAll`, as in
+the browser's `FormData`):
+
+```python
+class ToppingsState(rx.State):
+    toppings: list[str] = []
+
+    @rx.event
+    def handle_submit(self, form_data: rx.form.FormData[str, str]):
+        self.toppings = form_data.getlist("topping")
+
+
+def toppings_form():
+    return rx.form(
+        rx.el.input(type="checkbox", name="topping", value="cheese"),
+        rx.el.input(type="checkbox", name="topping", value="olives"),
+        rx.button("Submit", type="submit"),
+        on_submit=ToppingsState.handle_submit,
+    )
+```
+
+`rx.form.FormData` is a read-only mapping: indexing it with
+`form_data["topping"]` returns the last value, the same as a `dict`, and
+`form_data.multi_items()` returns every `(name, value)` pair. A
+[TypedDict](#validating-form-data-with-a-typeddict) can also collect repeated
+names with a `list[str]` field.
+
+```md alert info
+# Names ending in `[]`.
+
+A two-thumb `rx.slider(name="range")` submits each of its values as `range[]`.
+Like any repeated name, a `dict` keeps only the last of them, while
+`rx.form.FormData` gives them all with `form_data.getlist("range[]")`.
+
+A `TypedDict` instead lets you declare the field without brackets: a list field
+`range: list[str]` collects the values submitted as `range[]`, unless the
+`TypedDict` also declares a `range[]` field. A declared `name[]` field of any
+other type is filled like any other field: a `bool` field is read as described
+in [List and bool fields](#list-and-bool-fields), and other types get the last
+value.
+```
+
+## Validating Form Data with a TypedDict
+
+The `on_submit` handler usually receives the form data as a plain `dict`, which
+means accessing a field is untyped (`form_data["email"]` returns `Any`) and a
+typo in a `name` goes unnoticed until runtime.
+
+Instead, you can annotate the handler's parameter with a
+[`TypedDict`](https://docs.python.org/3/library/typing.html#typing.TypedDict).
+This gives you typed, autocompleted access to each field inside the handler, and
+Reflex validates the form **at compile time**: every required key of the
+`TypedDict` must have a matching form control. If a required field has no
+control with that `name` (or `id`), Reflex raises an `EventHandlerValueError`
+before the app starts, pointing out exactly which fields are missing.
+
+```python demo exec
+from typing import TypedDict
+
+from typing_extensions import NotRequired
+
+
+class ContactForm(TypedDict):
+    first_name: str
+    last_name: str
+    email: str
+    message: NotRequired[str]  # optional field
+
+
+class TypedFormState(rx.State):
+    form_data: ContactForm | None = None
+
+    @rx.event
+    def handle_submit(self, form_data: ContactForm):
+        """Handle the form submit."""
+        # form_data is typed: editors autocomplete the keys below.
+        self.form_data = form_data
+
+
+def typed_form_example():
+    return rx.vstack(
+        rx.form(
+            rx.vstack(
+                rx.input(placeholder="First Name", name="first_name"),
+                rx.input(placeholder="Last Name", name="last_name"),
+                rx.input(placeholder="Email", name="email", type="email"),
+                rx.text_area(placeholder="Message", name="message"),
+                rx.button("Submit", type="submit"),
+            ),
+            on_submit=TypedFormState.handle_submit,
+            reset_on_submit=True,
+        ),
+        rx.divider(),
+        rx.heading("Results", as_="h2"),
+        rx.text(TypedFormState.form_data.to_string()),
+    )
+```
+
+### Required and optional fields
+
+By default every key declared in a `TypedDict` is **required** and must be
+backed by a form control. Mark a field as optional with `NotRequired` (or by
+inheriting from a `total=False` base) so Reflex won't require a matching
+control:
+
+```python
+from typing import TypedDict
+
+from typing_extensions import NotRequired
+
+
+class ContactForm(TypedDict):
+    name: str  # required: a control named "name" must exist
+    email: str  # required: a control named "email" must exist
+    message: NotRequired[str]  # optional: no control required
+```
+
+### List and bool fields
+
+Two kinds of `TypedDict` fields are filled in even when the form submits no
+value for them:
+
+- A `list[str]` field holds every value submitted under its name, in order, or
+  an empty list when there are none.
+- A `bool` field is `False` when no value was submitted under its name, so an
+  unchecked checkbox or switch reads as `False` instead of a missing key. A
+  submitted value is `True` unless, ignoring case and surrounding whitespace,
+  it is empty or `"false"`, `"off"`, `"no"`, `"n"` or `"0"`, so a select, radio
+  group or hidden input submitting `"false"` reads as `False`.
+
+When no value is submitted for a field whose type allows `None`, such as
+`list[str] | None` or `bool | None`, the field is `None` instead. A field
+marked `NotRequired` is left out when no value is submitted for it, whatever
+its type.
+
+```python
+class PreferencesForm(TypedDict):
+    toppings: list[str]  # every checked "toppings" checkbox
+    subscribe: bool  # False when the checkbox is unchecked
+    notify: bool | None  # None when the switch is off
+
+
+class PreferencesState(rx.State):
+    preferences: PreferencesForm | None = None
+
+    @rx.event
+    def handle_submit(self, form_data: PreferencesForm):
+        self.preferences = form_data
+
+
+def preferences_form():
+    return rx.form(
+        rx.el.input(type="checkbox", name="toppings", value="cheese"),
+        rx.el.input(type="checkbox", name="toppings", value="olives"),
+        rx.checkbox("Subscribe", name="subscribe"),
+        rx.switch(name="notify"),
+        rx.button("Submit", type="submit"),
+        on_submit=PreferencesState.handle_submit,
+    )
+```
+
+Other fields keep the last value submitted for their name.
+
+Generic `TypedDict`s work too, such as `class Data(Base[list[str]])`. On
+Python 3.11, a further `typing.TypedDict` subclass of `Data` loses those type
+arguments and Reflex rejects the form when it compiles, so define these
+`TypedDict`s with `typing_extensions.TypedDict` instead.
+
+If a required field is missing, creating the form fails fast with a message that
+lists the expected, missing, and matching fields:
+
+```python
+class SignupForm(TypedDict):
+    username: str
+    email: str
+
+
+class SignupState(rx.State):
+    @rx.event
+    def handle_submit(self, form_data: SignupForm): ...
+
+
+# Raises EventHandlerValueError: the form has no control named "email".
+rx.form(
+    rx.input(name="username"),
+    rx.button("Submit", type="submit"),
+    on_submit=SignupState.handle_submit,
+)
+```
+
+```md alert info
+# When is validation skipped?
+
+The check only runs when the form fields are statically known. It is
+automatically skipped when control `name`/`id` values are dynamic (for example,
+built with `rx.foreach`), or when the form has an `id` (since controls can be
+associated from elsewhere via the HTML `form` attribute). In those cases the
+`TypedDict` still provides typed access inside the handler. At runtime
+`form_data` is always a regular dictionary.
+```
+
+## Dynamic Forms
+
+Forms can be dynamically created by iterating through state vars using `rx.foreach`.
+
+This example allows the user to add new fields to the form prior to submit, and all
+fields will be included in the form data passed to the `handle_submit` function.
+
+```python demo exec
+class DynamicFormState(rx.State):
+    form_data: dict = {}
+    form_fields: list[str] = ["first_name", "last_name", "email"]
+
+    @rx.var(cache=True)
+    def form_field_placeholders(self) -> list[str]:
+        return [
+            " ".join(w.capitalize() for w in field.split("_"))
+            for field in self.form_fields
+        ]
+
+    @rx.event
+    def add_form_field(self, form_data: dict):
+        new_field = form_data.get("new_field")
+        if not new_field:
+            return
+        field_name = new_field.strip().lower().replace(" ", "_")
+        self.form_fields.append(field_name)
+
+    @rx.event
+    def handle_submit(self, form_data: dict):
+        self.form_data = form_data
+
+
+def dynamic_form():
+    return rx.vstack(
+        rx.form(
+            rx.vstack(
+                rx.foreach(
+                    DynamicFormState.form_fields,
+                    lambda field, idx: rx.input(
+                        placeholder=DynamicFormState.form_field_placeholders[idx],
+                        name=field,
+                    ),
+                ),
+                rx.button("Submit", type="submit"),
+            ),
+            on_submit=DynamicFormState.handle_submit,
+            reset_on_submit=True,
+        ),
+        rx.form(
+            rx.hstack(
+                rx.input(placeholder="New Field", name="new_field"),
+                rx.button("+", type="submit"),
+            ),
+            on_submit=DynamicFormState.add_form_field,
+            reset_on_submit=True,
+        ),
+        rx.divider(),
+        rx.heading("Results", as_="h2"),
+        rx.text(DynamicFormState.form_data.to_string()),
+    )
+```
+
+## API Reference
+
+### rx.form
+
+The Form component.
+
+#### Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `access_key` | str | - | Provides a hint for generating a keyboard shortcut for the current element. |
+| `auto_capitalize` | Literal["off", "none", "on", "sentences", "words", "characters"] | - | Controls whether and how text input is automatically capitalized as it is entered/edited by the user. |
+| `content_editable` | Literal["inherit", "plaintext-only"], bool | - | Indicates whether the element's content is editable. |
+| `context_menu` | str | - | Defines the ID of a <menu> element which will serve as the element's context menu. |
+| `dir` | str | - | Defines the text direction. Allowed values are ltr (Left-To-Right) or rtl (Right-To-Left). |
+| `draggable` | bool | - | Defines whether the element can be dragged. |
+| `enter_key_hint` | Literal["enter", "done", "go", "next", "previous", "search", "send"] | - | Hints what media types the media element is able to play. |
+| `hidden` | bool | - | Defines whether the element is hidden. |
+| `input_mode` | Literal["none", "text", "tel", "url", "email", "numeric", "decimal", "search"] | - | Defines the type of the element. |
+| `item_prop` | str | - | Defines the name of the element for metadata purposes. |
+| `lang` | str | - | Defines the language used in the element. |
+| `role` | Literal["alert", "alertdialog", "application", "article", "banner", "button", "cell", "checkbox", "columnheader", "combobox", "complementary", "contentinfo", "definition", "dialog", "directory", "document", "feed", "figure", "form", "grid", "gridcell", "group", "heading", "img", "link", "list", "listbox", "listitem", "log", "main", "marquee", "math", "menu", "menubar", "menuitem", "menuitemcheckbox", "menuitemradio", "navigation", "none", "note", "option", "presentation", "progressbar", "radio", "radiogroup", "region", "row", "rowgroup", "rowheader", "scrollbar", "search", "searchbox", "separator", "slider", "spinbutton", "status", "switch", "tab", "table", "tablist", "tabpanel", "term", "textbox", "timer", "toolbar", "tooltip", "tree", "treegrid", "treeitem"] | - | Defines the role of the element. |
+| `slot` | str | - | Assigns a slot in a shadow DOM shadow tree to an element. |
+| `spell_check` | bool | - | Defines whether the element may be checked for spelling errors. |
+| `tab_index` | int | - | Defines the position of the current element in the tabbing order. |
+| `title` | str | - | Defines a tooltip for the element. |
+| `as_child` | bool | - | Change the default rendered element for the one passed as a child. |
+| `accept` | str | - | MIME types the server accepts for file upload. |
+| `accept_charset` | str | - | Character encodings to be used for form submission. |
+| `action` | str | - | URL where the form's data should be submitted. |
+| `auto_complete` | str | - | Whether the form should have autocomplete enabled. |
+| `enc_type` | str | - | Encoding type for the form data when submitted. |
+| `method` | str | - | HTTP method to use for form submission. |
+| `name` | str | - | Name of the form. |
+| `no_validate` | bool | - | Indicates that the form should not be validated on submit. |
+| `target` | str | - | Where to display the response after submitting the form. |
+| `reset_on_submit` | bool | - | If true, the form will be cleared after submit. |
+| `handle_submit_unique_name` | str | - | The name used to make this form's submit handler function unique. |
+
+#### Event Triggers
+
+Base event triggers: https://reflex.dev/docs/api-reference/event-triggers/
+
+Component-specific event triggers:
+
+| Event Trigger | Description |
+| --- | --- |
+| `on_submit` | Fired when the form is submitted. |
+| `on_clear_server_errors` | Fired when the errors are cleared. |

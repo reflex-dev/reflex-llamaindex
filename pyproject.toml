@@ -1,0 +1,26 @@
+[project]
+name = "reflex-llamaindex-guide"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "llama-index-core>=0.14.25",
+    "llama-index-embeddings-openai>=0.7.0",
+    "llama-index-llms-openai>=0.8.3",
+    "python-dotenv>=1.2.4",
+    "reflex>=0.10.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.17.1",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+testpaths = ["tests"]

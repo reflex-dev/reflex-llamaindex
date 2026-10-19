@@ -1,0 +1,15 @@
+*.py[cod]
+.states
+.web
+*.db
+assets/external/
+.venv/
+.web/
+.states/
+.env
+.storage/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+reflex.log
