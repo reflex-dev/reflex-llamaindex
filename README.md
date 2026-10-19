@@ -24,7 +24,7 @@ Requires Python 3.12+ and uv. The locked environment was tested with Python 3.14
 Reflex 0.10.0, and LlamaIndex core 0.14.25.
 
 ```bash
-git clone --branch v0.1.0 https://github.com/reflex-dev/reflex-llamaindex.git
+git clone --branch v0.1.1 https://github.com/reflex-dev/reflex-llamaindex.git
 cd reflex-llamaindex
 uv sync --locked
 cp .env.example .env
@@ -125,3 +125,15 @@ mode.
 - [Reflex background events](https://reflex.dev/docs/events/background-events/)
 - [LlamaIndex citation engine](https://developers.llamaindex.ai/python/framework-api-reference/query_engine/citation/)
 - [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna)
+
+## NLTK security pin
+
+Version `v0.1.1` replaces the PyPI NLTK dependency with the exact upstream
+commit [`574270e`](https://github.com/nltk/nltk/commit/574270e2ad368c8816976e584da56ddfb3fefbad),
+which includes the model-artifact path fixes referenced by
+[GHSA-8mgp-746c-j5xp / CVE-2026-81726](https://github.com/advisories/GHSA-8mgp-746c-j5xp).
+As of October 19, 2026, there is no patched PyPI release. This source build still
+reports `3.10.3`, so version-based scanners may continue to report the advisory.
+Use `uv sync --locked` to install the pinned source; Git must be installed.
+The security tests check that model reads and writes cannot escape allowed roots.
+Replace this interim source pin with a verified patched release when one is available.

@@ -1,11 +1,13 @@
 [project]
 name = "reflex-llamaindex-guide"
-version = "0.1.0"
+version = "0.1.1"
 requires-python = ">=3.12"
 dependencies = [
     "llama-index-core>=0.14.25",
     "llama-index-embeddings-openai>=0.7.0",
     "llama-index-llms-openai>=0.8.3",
+    # Interim upstream fix for GHSA-8mgp-746c-j5xp; no patched PyPI release yet.
+    "nltk @ git+https://github.com/nltk/nltk.git@574270e2ad368c8816976e584da56ddfb3fefbad",
     "python-dotenv>=1.2.4",
     "reflex>=0.10.0",
 ]

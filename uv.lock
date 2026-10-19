@@ -1316,17 +1316,13 @@ wheels = [
 [[package]]
 name = "nltk"
 version = "3.10.3"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/nltk/nltk.git?rev=574270e2ad368c8816976e584da56ddfb3fefbad#574270e2ad368c8816976e584da56ddfb3fefbad" }
 dependencies = [
     { name = "click" },
     { name = "defusedxml" },
     { name = "joblib" },
     { name = "regex" },
     { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e0/e6/fe51d2bb1a3b446f59c5c8165999a9fee208bc346af90a7cbf7657bc0d75/nltk-3.10.3.tar.gz", hash = "sha256:bb9327a461c3811c2fa4900e03840401f2126adfb30c0072827c433bd2444ea4", size = 5137152, upload-time = "2026-08-12T23:46:37.258Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/6d/ebd2af4640b12168fdf0cb74b6118df2f32a2f62ec7e0c06fbfd80706639/nltk-3.10.3-py3-none-any.whl", hash = "sha256:ff9598a8e20518ee0d557745890cc4435b9578489e2dcbc69c4f81fa060caf7c", size = 1798643, upload-time = "2026-08-12T23:44:13.478Z" },
 ]
 
 [[package]]
@@ -2153,12 +2149,13 @@ wheels = [
 
 [[package]]
 name = "reflex-llamaindex-guide"
-version = "0.1.0"
+version = "0.1.1"
 source = { virtual = "." }
 dependencies = [
     { name = "llama-index-core" },
     { name = "llama-index-embeddings-openai" },
     { name = "llama-index-llms-openai" },
+    { name = "nltk" },
     { name = "python-dotenv" },
     { name = "reflex" },
 ]
@@ -2175,6 +2172,7 @@ requires-dist = [
     { name = "llama-index-core", specifier = ">=0.14.25" },
     { name = "llama-index-embeddings-openai", specifier = ">=0.7.0" },
     { name = "llama-index-llms-openai", specifier = ">=0.8.3" },
+    { name = "nltk", git = "https://github.com/nltk/nltk.git?rev=574270e2ad368c8816976e584da56ddfb3fefbad" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
     { name = "reflex", specifier = ">=0.10.0" },
 ]
